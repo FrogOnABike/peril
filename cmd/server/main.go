@@ -5,6 +5,9 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/FrogOnABike/peril/internal/pubsub"
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
+
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -24,4 +27,16 @@ func main() {
 	signal.Notify(signalChan, os.Interrupt)
 	<-signalChan
 	fmt.Println("Shutting down Peril server...")
+
+	// Open a channel
+	chan1, err := conn.Channel()
+	if err != nil {
+		fmt.Println("Failed to open a channel:", err)
+		return
+	}
+	defer chan1.Close()
+	fmt.Println("Channel opened successfully")
+
+	// Publish a message to the exchange
+	pubsub.PublishJSON(chan1, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
 }
