@@ -5,8 +5,8 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/FrogOnABike/peril/internal/pubsub"
-	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
+	"github.com/frogonabike/peril/internal/pubsub"
+	"github.com/frogonabike/peril/internal/routing"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -22,12 +22,6 @@ func main() {
 	defer conn.Close()
 	fmt.Println("Connection successful")
 
-	// wait for ctrl+c
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-	<-signalChan
-	fmt.Println("Shutting down Peril server...")
-
 	// Open a channel
 	chan1, err := conn.Channel()
 	if err != nil {
@@ -38,5 +32,15 @@ func main() {
 	fmt.Println("Channel opened successfully")
 
 	// Publish a message to the exchange
-	pubsub.PublishJSON(chan1, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
+	if err := pubsub.PublishJSON(chan1, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true}); err != nil {
+		fmt.Println("Failed to publish a message:", err)
+		return
+	}
+	fmt.Println("Message published successfully")
+
+	// wait for ctrl+c
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt)
+	<-signalChan
+	fmt.Println("Shutting down Peril server...")
 }
