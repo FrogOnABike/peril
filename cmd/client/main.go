@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/frogonabike/peril/internal/gamelogic"
+
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -20,6 +22,9 @@ func main() {
 	}
 	defer conn.Close()
 	fmt.Println("Connection successful")
+
+	// Prompt for username
+	_, err = gamelogic.ClientWelcome()
 
 	// wait for ctrl+c
 	signalChan := make(chan os.Signal, 1)
