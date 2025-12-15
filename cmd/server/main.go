@@ -7,7 +7,6 @@ import (
 
 	"github.com/frogonabike/peril/internal/pubsub"
 	"github.com/frogonabike/peril/internal/routing"
-
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
