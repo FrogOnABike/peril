@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/frogonabike/peril/internal/gamelogic"
 	"github.com/frogonabike/peril/internal/pubsub"
 	"github.com/frogonabike/peril/internal/routing"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -30,16 +31,58 @@ func main() {
 	defer chan1.Close()
 	fmt.Println("Channel opened successfully")
 
-	// Publish a message to the exchange
-	if err := pubsub.PublishJSON(chan1, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true}); err != nil {
-		fmt.Println("Failed to publish a message:", err)
-		return
-	}
-	fmt.Println("Message published successfully")
+	// Display help message
+	gamelogic.PrintServerHelp()
 
-	// wait for ctrl+c
+	// prepare channels for input and signals
+	inputCh := make(chan []string)
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt)
-	<-signalChan
+
+	// reader goroutine: push parsed words to inputCh
+	go func() {
+		for {
+			words := gamelogic.GetInput()
+			inputCh <- words
+		}
+	}()
+
+	// main loop: handle input or OS signal
+	for {
+		select {
+		case words := <-inputCh:
+			if len(words) == 0 {
+				continue
+			}
+			cmd := words[0]
+			switch cmd {
+			case "pause":
+				if err := pubsub.PublishJSON(chan1, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true}); err != nil {
+					fmt.Println("Failed to publish a pause message:", err)
+				} else {
+					fmt.Println("Pause message published")
+				}
+			case "resume":
+				if err := pubsub.PublishJSON(chan1, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: false}); err != nil {
+					fmt.Println("Failed to publish a resume message:", err)
+				} else {
+					fmt.Println("Resume message published")
+				}
+			case "quit":
+				fmt.Println("Quitting server...")
+				// perform any cleanup if needed, then exit loop to reach shutdown logic
+				goto shutdown
+			default:
+				fmt.Println("Unknown command. Type 'help' for a list of commands.")
+			}
+		case <-signalChan:
+			fmt.Println("Received interrupt signal")
+			goto shutdown
+		}
+	}
+
+shutdown:
 	fmt.Println("Shutting down Peril server...")
+	signal.Notify(signalChan, os.Interrupt)
+	<-signalChan
 }
