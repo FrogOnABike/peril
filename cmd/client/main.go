@@ -48,9 +48,61 @@ func main() {
 	}
 	defer chan1.Close()
 
-	// wait for ctrl+c
+	// Create a new game state
+	gameState := gamelogic.NewGameState(username)
+
+	// prepare channels for input and signals
+	inputCh := make(chan []string)
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt)
-	<-signalChan
+
+	// reader goroutine: push parsed words to inputCh
+	go func() {
+		for {
+			words := gamelogic.GetInput()
+			inputCh <- words
+		}
+	}()
+
+	// main loop: handle input or OS signal
+	for {
+		select {
+		case words := <-inputCh:
+			if len(words) == 0 {
+				continue
+			}
+			cmd := words[0]
+			switch cmd {
+			case "spawn":
+				if err := gameState.CommandSpawn(words); err != nil {
+					fmt.Println(err)
+				}
+			case "move":
+				_, err := gameState.CommandMove(words)
+				if err != nil {
+					fmt.Println(err)
+				}
+			case "status":
+				gameState.CommandStatus()
+			case "spam":
+				fmt.Println("Spamming not allowed yet")
+			case "help":
+				gamelogic.PrintClientHelp()
+			case "quit":
+				gamelogic.PrintQuit()
+				// perform any cleanup if needed, then exit loop to reach shutdown logic
+				goto shutdown
+			default:
+				fmt.Println("Unknown command. Type 'help' for a list of commands.")
+			}
+		case <-signalChan:
+			fmt.Println("Received interrupt signal")
+			goto shutdown
+		}
+	}
+
+shutdown:
 	fmt.Println("Shutting down Peril client...")
+	signal.Notify(signalChan, os.Interrupt)
+	<-signalChan
 }
