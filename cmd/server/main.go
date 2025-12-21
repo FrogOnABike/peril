@@ -31,6 +31,20 @@ func main() {
 	defer chan1.Close()
 	fmt.Println("Channel opened successfully")
 
+	// Declare and bind queues
+	chan1, _, err = pubsub.DeclareAndBind(
+		conn,
+		routing.ExchangePerilTopic,
+		"game_logs",
+		routing.GameLogSlug,
+		pubsub.Durable,
+	)
+	if err != nil {
+		fmt.Println("Failed to declare and bind queue:", err)
+		return
+	}
+	defer chan1.Close()
+
 	// Display help message
 	gamelogic.PrintServerHelp()
 
