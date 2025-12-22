@@ -51,6 +51,18 @@ func main() {
 	// Create a new game state
 	gameState := gamelogic.NewGameState(username)
 
+	// Subscribe to pause messages
+	if err = pubsub.SubscribeJSON(
+		conn,
+		routing.ExchangePerilDirect,
+		fmt.Sprintf("%s.%s", routing.PauseKey, username),
+		routing.PauseKey,
+		pubsub.Transient,
+		handlerPause(gameState)); err != nil {
+		fmt.Println("Failed to subscribe to pause messages:", err)
+		return
+	}
+
 	// prepare channels for input and signals
 	inputCh := make(chan []string)
 	signalChan := make(chan os.Signal, 1)
