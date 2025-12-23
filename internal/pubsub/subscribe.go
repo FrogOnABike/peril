@@ -23,7 +23,7 @@ func SubscribeJSON[T any](
 	deliveries, err := ch.Consume(
 		qu.Name,
 		"",
-		true,  // auto-ack
+		false, // auto-ack
 		false, // exclusive
 		false, // no-local
 		false, // no-wait
