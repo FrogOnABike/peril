@@ -63,6 +63,20 @@ func main() {
 		return
 	}
 
+	// Subscribe to army move messages
+	if err = pubsub.SubscribeJSON(
+		conn,
+		routing.ExchangePerilTopic,
+		fmt.Sprintf("army_moves.%s", username),
+		"army_moves.*",
+		pubsub.Transient,
+		func(move gamelogic.ArmyMove) {
+			gameState.HandleMove(move)
+		}); err != nil {
+		fmt.Println("Failed to subscribe to army move messages:", err)
+		return
+	}
+
 	// prepare channels for input and signals
 	inputCh := make(chan []string)
 	signalChan := make(chan os.Signal, 1)
@@ -90,10 +104,20 @@ func main() {
 					fmt.Println(err)
 				}
 			case "move":
-				_, err := gameState.CommandMove(words)
+				mv, err := gameState.CommandMove(words)
 				if err != nil {
 					fmt.Println(err)
 				}
+				if err = pubsub.PublishJSON(
+					chan1,
+					routing.ExchangePerilTopic,
+					fmt.Sprintf("army_moves.%s", username),
+					mv); err != nil {
+					fmt.Println("Failed to publish army move message:", err)
+				} else {
+					fmt.Println("Army move message published")
+				}
+
 			case "status":
 				gameState.CommandStatus()
 			case "spam":
