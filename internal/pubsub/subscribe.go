@@ -6,13 +6,21 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+type AckType string
+
+const (
+	Ack         AckType = "ack"
+	NackRequeue AckType = "nackrequeue"
+	NackDiscard AckType = "nackdiscard"
+)
+
 func SubscribeJSON[T any](
 	conn *amqp.Connection,
 	exchange,
 	queueName,
 	key string,
 	queueType SimpleQueueType, // an enum to represent "durable" or "transient"
-	handler func(T),
+	handler func(T) AckType,
 ) error {
 	// Confirm the channel and queue exist
 	ch, qu, err := DeclareAndBind(conn, exchange, queueName, key, queueType)
