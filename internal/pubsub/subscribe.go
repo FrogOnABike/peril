@@ -2,6 +2,7 @@ package pubsub
 
 import (
 	"encoding/json"
+	"fmt"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -48,9 +49,28 @@ func SubscribeJSON[T any](
 			if err != nil {
 				continue
 			}
-			handler(val)
-			if err = d.Ack(false); err != nil {
-				continue
+			at := handler(val)
+			switch at {
+			case Ack:
+				if err = d.Ack(false); err != nil {
+					fmt.Printf("could not ack message: %v\n", err)
+					continue
+				}
+				fmt.Printf("acked message\n")
+			case NackRequeue:
+				if err = d.Nack(false, true); err != nil {
+					fmt.Printf("could not nackrequeue message: %v\n", err)
+					continue
+				}
+				fmt.Printf("nackrequeued message\n")
+			case NackDiscard:
+				if err = d.Nack(false, false); err != nil {
+					fmt.Printf("could not nackdiscard message: %v\n", err)
+					continue
+				}
+				fmt.Printf("nackdiscarded message\n")
+			default:
+				fmt.Printf("unknown AckType: %v\n", at)
 			}
 		}
 	}()
