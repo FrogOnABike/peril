@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/frogonabike/peril/internal/routing"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -51,7 +52,9 @@ func DeclareAndBind(
 		queueType == Transient, // autodelete
 		queueType == Transient, // exclusive
 		false,                  // no-wait
-		nil,                    // arguments
+		amqp.Table{
+			"x-dead-letter-exchange": routing.ExchangePerilDLX,
+		},
 	)
 	if err != nil {
 		return nil, amqp.Queue{}, err
