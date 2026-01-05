@@ -29,7 +29,16 @@ func handlerMove(gs *gamelogic.GameState) func(gamelogic.ArmyMove) pubsub.AckTyp
 			return pubsub.Ack
 		case gamelogic.MoveOutcomeMakeWar:
 			fmt.Println("Prepare for battle!")
-			return pubsub.Ack
+			pubsub.PublishJSON(
+				gs.ChanPub,
+				routing.ExchangePerilTopic,
+				fmt.Sprintf("%s.%s", routing.WarRecognitionsPrefix, mv.Player.Username),
+				gamelogic.RecognitionOfWar{
+					Attacker: mv.Player,
+					Defender: mv.TargetPlayer,
+				},
+			)
+			return pubsub.NackRequeue
 		default:
 			return pubsub.NackDiscard
 		}
