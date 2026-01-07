@@ -70,11 +70,20 @@ func main() {
 		fmt.Sprintf("army_moves.%s", username),
 		"army_moves.*",
 		pubsub.Transient,
-		handlerMove(gameState)); err != nil {
-		// func(move gamelogic.ArmyMove) {
-		// 	gameState.HandleMove(move)
-		// }); err != nil {
+		handlerMove(gameState, chan1)); err != nil {
 		fmt.Println("Failed to subscribe to army move messages:", err)
+		return
+	}
+
+	// Subscribe to war messages
+	if err = pubsub.SubscribeJSON(
+		conn,
+		routing.ExchangePerilTopic,
+		"war",
+		fmt.Sprintf("%s.*", routing.WarRecognitionsPrefix),
+		pubsub.Durable,
+		handlerWar(gameState)); err != nil {
+		fmt.Println("Failed to subscribe to war messages:", err)
 		return
 	}
 
