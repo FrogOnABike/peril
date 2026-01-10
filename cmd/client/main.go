@@ -82,7 +82,7 @@ func main() {
 		"war",
 		fmt.Sprintf("%s.*", routing.WarRecognitionsPrefix),
 		pubsub.Durable,
-		handlerWar(gameState)); err != nil {
+		handlerWar(gameState, chan1)); err != nil {
 		fmt.Println("Failed to subscribe to war messages:", err)
 		return
 	}

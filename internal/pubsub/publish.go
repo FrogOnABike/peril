@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/gob"
 	"encoding/json"
+	"fmt"
 
 	"github.com/frogonabike/peril/internal/routing"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -53,6 +54,19 @@ func PublishGob[T any](ch *amqp.Channel, exchange, key string, val T) error {
 			Body:        valBytes.Bytes(),
 		},
 	)
+	return nil
+}
+
+func PublishGameLog(gl routing.GameLog, ch *amqp.Channel) error {
+	err := PublishGob(
+		ch,
+		routing.ExchangePerilTopic,
+		fmt.Sprintf("%s.%s", routing.GameLogSlug, gl.Username),
+		gl)
+	if err != nil {
+		return fmt.Errorf("could not publish game log: %v", err)
+	}
+	fmt.Println("Game Log published")
 	return nil
 }
 

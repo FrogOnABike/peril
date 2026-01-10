@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/frogonabike/peril/internal/gamelogic"
 	"github.com/frogonabike/peril/internal/pubsub"
@@ -51,10 +52,10 @@ func handlerMove(gs *gamelogic.GameState, ch *amqp.Channel) func(gamelogic.ArmyM
 	}
 }
 
-func handlerWar(gs *gamelogic.GameState) func(gamelogic.RecognitionOfWar) pubsub.AckType {
+func handlerWar(gs *gamelogic.GameState, ch *amqp.Channel) func(gamelogic.RecognitionOfWar) pubsub.AckType {
 	return func(war gamelogic.RecognitionOfWar) pubsub.AckType {
 		defer fmt.Print("> ")
-		wo, _, _ := gs.HandleWar(war)
+		wo, wp, lp := gs.HandleWar(war)
 		switch wo {
 		case gamelogic.WarOutcomeNotInvolved:
 			return pubsub.NackRequeue
@@ -62,12 +63,42 @@ func handlerWar(gs *gamelogic.GameState) func(gamelogic.RecognitionOfWar) pubsub
 			return pubsub.Ack
 		case gamelogic.WarOutcomeYouWon:
 			fmt.Println("Congratulations! You won the war!")
+			glMsg := routing.GameLog{
+				Username:    gs.Player.Username,
+				Message:     fmt.Sprintf("%s has won a war against %s", wp, lp),
+				CurrentTime: time.Now(),
+			}
+			err := pubsub.PublishGameLog(glMsg, ch)
+			if err != nil {
+				fmt.Println("Failed to publish game log:", err)
+				return pubsub.NackRequeue
+			}
 			return pubsub.Ack
 		case gamelogic.WarOutcomeOpponentWon:
 			fmt.Println("You lost the war. Better luck next time.")
+			glMsg := routing.GameLog{
+				Username:    gs.Player.Username,
+				Message:     fmt.Sprintf("%s has won a war against %s", wp, lp),
+				CurrentTime: time.Now(),
+			}
+			err := pubsub.PublishGameLog(glMsg, ch)
+			if err != nil {
+				fmt.Println("Failed to publish game log:", err)
+				return pubsub.NackRequeue
+			}
 			return pubsub.Ack
 		case gamelogic.WarOutcomeDraw:
 			fmt.Println("The war ended in a draw.")
+			glMsg := routing.GameLog{
+				Username:    gs.Player.Username,
+				Message:     fmt.Sprintf("A war between %s and %s ended in a draw.", wp, lp),
+				CurrentTime: time.Now(),
+			}
+			err := pubsub.PublishGameLog(glMsg, ch)
+			if err != nil {
+				fmt.Println("Failed to publish game log:", err)
+				return pubsub.NackRequeue
+			}
 			return pubsub.Ack
 		default:
 			return pubsub.NackDiscard
