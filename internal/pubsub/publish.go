@@ -58,8 +58,7 @@ func PublishGob[T any](ch *amqp.Channel, exchange, key string, val T) error {
 }
 
 func PublishGameLog(gl routing.GameLog, ch *amqp.Channel) error {
-	err := PublishGob(
-		ch,
+	err := PublishGob(ch,
 		routing.ExchangePerilTopic,
 		fmt.Sprintf("%s.%s", routing.GameLogSlug, gl.Username),
 		gl)
