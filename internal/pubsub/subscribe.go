@@ -31,6 +31,7 @@ func SubscribeJSON[T any](
 		return val, err
 	})
 }
+
 func SubscribeGob[T any](
 	conn *amqp.Connection,
 	exchange,
