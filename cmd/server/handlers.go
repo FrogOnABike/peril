@@ -1,15 +1,21 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 
+	"github.com/frogonabike/peril/internal/gamelogic"
+	"github.com/frogonabike/peril/internal/pubsub"
 	"github.com/frogonabike/peril/internal/routing"
 )
 
-func handleGameLog(log []byte) AckType {
+func handleGameLog(log routing.GameLog) pubsub.AckType {
 	defer fmt.Print("> ")
-	var gamelog routing.GameLog
-	err := json.Unmarshal(log, &gamelog)
-	return Ack
+	err := gamelogic.WriteLog(log)
+	if err != nil {
+		fmt.Println("Failed to write game log:", err)
+		return pubsub.NackRequeue
+	}
+	fmt.Printf("Game log recorded: %s\n", log.Message)
+	return pubsub.Ack
+
 }

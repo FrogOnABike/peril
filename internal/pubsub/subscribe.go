@@ -40,7 +40,7 @@ func SubscribeGob[T any](
 	queueType SimpleQueueType, // an enum to represent "durable" or "transient"
 	handler func(T) AckType,
 ) error {
-	return subscribe(conn, exchange, queueName, key, queueType, handler, func(body []byte) (T, error) {
+	return subscribe[T](conn, exchange, queueName, key, queueType, handler, func(body []byte) (T, error) {
 		var val T
 		dec := gob.NewDecoder(bytes.NewReader(body))
 		err := dec.Decode(&val)

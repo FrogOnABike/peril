@@ -53,6 +53,19 @@ func main() {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt)
 
+	// Subscribe to game logs
+	if err := pubsub.SubscribeGob(
+		conn,
+		routing.ExchangePerilTopic,
+		"game_logs",
+		fmt.Sprintf("%s.*", routing.GameLogSlug),
+		pubsub.Durable,
+		handleGameLog,
+	); err != nil {
+		fmt.Println("Failed to subscribe to game logs:", err)
+		return
+	}
+
 	// reader goroutine: push parsed words to inputCh
 	go func() {
 		for {
